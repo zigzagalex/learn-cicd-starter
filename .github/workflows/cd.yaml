@@ -27,6 +27,26 @@ jobs:
       - name: Install Goose
         run: go install github.com/pressly/goose/v3/cmd/goose@latest
 
+      - name: Secret check (diff-only)
+        run: |
+          set -euo pipefail
+          BASE="${{ github.event.before }}"
+          HEAD="${{ github.sha }}"
+          git fetch --no-tags --prune --depth=2 origin
+          echo "Scanning diff $BASE..$HEAD for common secrets…"
+          if git diff "$BASE" "$HEAD" | grep -E -i \
+            '(password|secret|api[_-]?key|token|DATABASE_URL|mongodb(\+srv)?:\/\/|postgres:\/\/|mysql:\/\/|BEGIN [A-Z ]*PRIVATE KEY)' >/dev/null; then
+            echo "🚫 Potential secret found in diff. Fix it before pushing."
+            exit 1
+          fi
+          echo "✅ No obvious secrets in diff."
+
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: --redact --leaks-exit-code 1
+
+        
       - name: Build app (production)
         run: bash scripts/buildprod.sh
 
