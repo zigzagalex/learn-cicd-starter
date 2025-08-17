@@ -41,3 +41,12 @@ jobs:
           gcloud builds submit \
             --tag "${{ env.REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ env.TAG }}" \
             .
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy notely \
+            --image "${{ env.REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ env.TAG }}" \
+            --region "${{ env.REGION }}" \
+            --project "${{ secrets.PROJECT_ID }}" \
+            --allow-unauthenticated \
+            --max-instances=4 \
