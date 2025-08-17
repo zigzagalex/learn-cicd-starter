@@ -13,6 +13,7 @@ jobs:
       REPOSITORY: notely-ar-repo
       IMAGE: notely
       TAG: ${{ github.sha }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
     steps:
       - name: Checkout code
@@ -22,6 +23,9 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
+      
+      - name: Install Goose
+        run: go install github.com/pressly/goose/v3/cmd/goose@latest
 
       - name: Build app (production)
         run: bash scripts/buildprod.sh
@@ -41,6 +45,9 @@ jobs:
           gcloud builds submit \
             --tag "${{ env.REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ env.TAG }}" \
             .
+        
+      - name: Migrate DB 
+        run: ./scripts/migrateup.sh
 
       - name: Deploy to Cloud Run
         run: |
