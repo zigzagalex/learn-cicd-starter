@@ -8,6 +8,12 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    env:
+      REGION: us-central1                   
+      REPOSITORY: notely-ar-repo           
+      IMAGE: notely
+      TAG: ${{ github.sha }}                
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -15,7 +21,26 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'   # adjust to your Go version
+          go-version: '1.22'
 
-      - name: Build app
+      - name: Build app (production)
         run: bash scripts/buildprod.sh
+
+      # --- GCP auth + CLI ---
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_CREDENTIALS }}   
+          export_default_credentials: true
+
+      - name: Enable required APIs (idempotent)
+        run: |
+          gcloud services enable cloudbuild.googleapis.com artifactregistry.googleapis.com
+
+      # --- Build & push via Cloud Build to Artifact Registry ---
+      - name: Build & push image to Artifact Registry
+        run: |
+          gcloud builds submit \
+            --tag "${REGION}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ env.TAG }}" \
+            .
