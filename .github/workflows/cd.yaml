@@ -43,8 +43,8 @@ jobs:
 
       - name: Secret scan (gitleaks)
         uses: gitleaks/gitleaks-action@v2
-        with:
-          args: --redact --leaks-exit-code 1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
         
       - name: Build app (production)
